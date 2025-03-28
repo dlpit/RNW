@@ -1,9 +1,11 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { ArrowDown } from 'lucide-react';
+import { ThemeContext } from '@/theme';
 
 const Hero = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const { isDarkMode } = useContext(ThemeContext);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -24,8 +26,12 @@ const Hero = () => {
         backgroundRepeat: "no-repeat"
       }}
     >
-      <div className="absolute inset-0 bg-clan-dark/30 backdrop-blur-sm"></div>
-      
+      <div className={`absolute inset-0 backdrop-blur-sm ${
+        isDarkMode 
+          ? "bg-white/10"
+          : "bg-clan-dark/30"  
+      }`}></div>
+
       <div className="section-container relative z-10 flex flex-col items-center justify-center text-center">
         <div className={`transition-all duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-10'}`}>
           <img 
@@ -39,11 +45,11 @@ const Hero = () => {
           <span className="gold-gradient-text">RN:W</span>
         </h1>
         
-        <p className={`mt-4 text-xl md:text-2xl text-white/90 font-medium transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-10'}`}>
+        <p className={`mt-4 text-xl md:text-2xl ${isDarkMode ? 'text-white/90' : 'text-white'} font-medium transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-10'}`}>
           Rejuve <span className="gold-gradient-text">Nation</span> : Warriors
         </p>
         
-        <p className={`mt-6 max-w-2xl text-white/70 transition-all duration-1000 delay-700 ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-10'}`}>
+        <p className={`mt-6 max-w-2xl ${isDarkMode ? 'text-white/70' : 'text-white/90'} transition-all duration-1000 delay-700 ${isVisible ? 'opacity-100' : 'opacity-0 translate-y-10'}`}>
           Đội ngũ chiến binh ưu tú tại server 284. Chúng tôi đang tìm kiếm những chiến binh dũng cảm sẵn sàng chiến đấu và cống hiến.
         </p>
         
