@@ -46,14 +46,12 @@ If you're a member of the RNW Clan and want to contribute to this portfolio:
 
 ## Team Members
 
-- [Member 1]
-- [Member 2]
-- [Member 3]
-- [Add all clan members]
+- [Linhan]
+- [HuySadNhan]
 
 ## Contact
 
-[Add contact information or links to social media]
+[Created with ❤️ by RNW Development Team.]
 
 ## License
 
