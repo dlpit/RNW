@@ -134,3 +134,22 @@
     font-weight: 900;
   }
 }
+
+.word-cycle-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+.word-cycle-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 500ms, transform 500ms;
+}
+.word-cycle-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+.word-cycle-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity 500ms, transform 500ms;
+}

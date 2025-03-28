@@ -114,7 +114,30 @@ export default {
         'card-dark': 'linear-gradient(145deg, #12151F 0%, #1A1F2C 100%)',
         'card-light': 'linear-gradient(145deg, #FFFFFF 0%, #F9FAFB 100%)',
       },
-      // Keep the rest of your keyframes and animations unchanged
+      animation: {
+        'float': 'float 4s ease-in-out infinite',
+        pulse: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        fadeIn: 'fadeIn 0.5s ease-in-out',
+        blink: 'blink 1s step-end infinite',
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
+        pulse: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.7' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        blink: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
+        }
+      }
     }
   },
   plugins: [],
