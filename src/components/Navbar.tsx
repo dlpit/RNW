@@ -10,7 +10,7 @@ import {
   FaPhoneAlt,
   FaSun,
   FaMoon,
-  FaLanguage
+  FaLanguage,
 } from "react-icons/fa";
 
 const Navbar = () => {
@@ -77,36 +77,34 @@ const Navbar = () => {
             >
               RN:W
             </div>
-            <div
-              className="hidden md:flex items-center space-x-4 text-white dark:text-black"
-            >
-                <button
+            <div className="hidden md:flex items-center space-x-4 text-white dark:text-black">
+              <button
                 onClick={toggleLanguage}
                 className="ml-2 text-white dark:text-black hover:text-clan-gold dark:hover:text-orange-500 transition-colors duration-200 flex items-center"
                 aria-label="Toggle Language"
-                >
-                <FaLanguage size={42}/>
+              >
+                <FaLanguage size={42} />
                 <div className="ml-2 relative w-10 h-7 overflow-hidden">
-                  <span 
-                  className={`absolute text-xl font-medium transition-transform duration-300 ${
-                  language === "en" 
-                  ? "translate-y-0 -translate-x-3" 
-                  : "-translate-y-8 -translate-x-3"
-                  }`}
+                  <span
+                    className={`absolute text-xl font-medium transition-transform duration-300 ${
+                      language === "en"
+                        ? "translate-y-0 -translate-x-3"
+                        : "-translate-y-8 -translate-x-3"
+                    }`}
                   >
-                  EN
+                    EN
                   </span>
-                  <span 
-                  className={`absolute text-xl font-medium transition-transform duration-300 ${
-                  language === "en" 
-                  ? "translate-y-8 -translate-x-3" 
-                  : "translate-y-0 -translate-x-3"
-                  }`}
+                  <span
+                    className={`absolute text-xl font-medium transition-transform duration-300 ${
+                      language === "en"
+                        ? "translate-y-8 -translate-x-3"
+                        : "translate-y-0 -translate-x-3"
+                    }`}
                   >
-                  VI
+                    VI
                   </span>
                 </div>
-                </button>
+              </button>
             </div>
           </div>
 
@@ -174,9 +172,9 @@ const Navbar = () => {
             </div>
             <a
               href="#recruitment"
-              className="px-4 py-2 rounded-md bg-gradient-gold text-clan-dark dark:text-clan-dark font-bai font-semibold text-sm transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,215,0,0.6)]"
+              className="px-6 py-2.5 rounded-md bg-gradient-gold text-clan-dark dark:text-clan-dark font-bai font-semibold text-sm tracking-wide transition-all duration-300 hover:shadow-[0_0_15px_rgba(255,215,0,0.6)] hover:scale-105 flex items-center justify-center"
             >
-              Join Clan
+              {getText("joinClan", language)}
             </a>
           </nav>
 
@@ -188,25 +186,25 @@ const Navbar = () => {
               className="mr-4 text-white dark:text-black hover:text-clan-gold dark:hover:text-orange-500 transition-colors duration-200 flex items-center"
               aria-label="Toggle Language"
             >
-              <FaLanguage size={24}/>
+              <FaLanguage size={24} />
               <div className="ml-1 relative w-8 h-5 overflow-hidden">
-                <span 
-                className={`absolute text-sm font-medium transition-transform duration-300 ${
-                language === "en" 
-                ? "translate-y-0 -translate-x-2" 
-                : "-translate-y-6 -translate-x-2"
-                }`}
+                <span
+                  className={`absolute text-sm font-medium transition-transform duration-300 ${
+                    language === "en"
+                      ? "translate-y-0 -translate-x-2"
+                      : "-translate-y-6 -translate-x-2"
+                  }`}
                 >
-                EN
+                  EN
                 </span>
-                <span 
-                className={`absolute text-sm font-medium transition-transform duration-300 ${
-                language === "en" 
-                ? "translate-y-6 -translate-x-2" 
-                : "translate-y-0 -translate-x-2"
-                }`}
+                <span
+                  className={`absolute text-sm font-medium transition-transform duration-300 ${
+                    language === "en"
+                      ? "translate-y-6 -translate-x-2"
+                      : "translate-y-0 -translate-x-2"
+                  }`}
                 >
-                VI
+                  VI
                 </span>
               </div>
             </button>
