@@ -119,6 +119,7 @@ export default {
         pulse: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         fadeIn: 'fadeIn 0.5s ease-in-out',
         blink: 'blink 1s step-end infinite',
+        'scroll-mouse': 'scrollMouse 2s ease-in-out infinite',
       },
       keyframes: {
         float: {
@@ -136,6 +137,12 @@ export default {
         blink: {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0' },
+        },
+        scrollMouse: {
+          '0%': { transform: 'translateY(0)', opacity: '0' },
+          '30%': { opacity: '1' },
+          '100%': { transform: 'translateY(16px)', opacity: '0' },
+          
         }
       }
     }

@@ -1,5 +1,4 @@
 import { useEffect, useState, useContext } from "react";
-import { ArrowDown } from "lucide-react";
 import { ThemeContext } from "@/theme";
 import { LanguageContext } from "@/Provider/language";
 import { getText } from "@/lib/translations";
@@ -67,7 +66,7 @@ const Hero = () => {
           <img
             src="/lovable-uploads/e29eae61-9195-47c9-ae8f-ebed8bf80c4e.png"
             alt="RN:W Clan Logo"
-            className="w-48 md:w-64 lg:w-80 mx-auto animate-float"
+            className="w-48 md:w-64 lg:w-80 mx-auto animate-float rounded-sm"
           />
         </div>
 
@@ -105,26 +104,36 @@ const Hero = () => {
         >
           <a
             href="#stats"
-            className="px-6 py-3 rounded-md bg-gradient-gold text-clan-dark font-semibold hover:shadow-[0_0_20px_rgba(255,215,0,0.6)] transition-shadow duration-300"
+            className="px-8 py-3.5 rounded-md bg-gradient-gold text-clan-dark font-semibold hover:shadow-[0_0_20px_rgba(255,215,0,0.6)] transition-shadow duration-300 min-w-[180px] text-center mx-2"
           >
             {getText("clanStats", language)}
           </a>
           <a
             href="#recruitment"
-            className="px-6 py-3 rounded-md bg-transparent border border-clan-gold text-clan-gold hover:bg-clan-gold/10 hover:shadow-[0_0_20px_rgba(255,215,0,0.3)] transition-all duration-300"
+            className="px-8 py-3.5 rounded-md bg-transparent border border-clan-gold text-clan-gold hover:bg-clan-gold/10 hover:shadow-[0_0_20px_rgba(255,215,0,0.3)] transition-all duration-300 min-w-[180px] text-center mx-2"
           >
             {getText("joinNow", language)}
           </a>
         </div>
-      </div>
 
-      <a
-        href="#stats"
-        className="absolute bottom-10 left-1/2 transform -translate-x-1/2 text-white/50 hover:text-clan-gold transition-colors duration-300 animate-bounce"
-        aria-label="Scroll down"
-      >
-        <ArrowDown size={24} />
-      </a>
+        <div
+          className={`mt-16 flex flex-col items-center transition-all duration-1000 delay-1100 ${
+            isVisible ? "opacity-100" : "opacity-0 translate-y-10"
+          }`}
+        >
+          <a
+            href="#stats"
+            className="flex flex-col items-center cursor-pointer"
+          >
+            <div className="w-6 h-10 border-2 border-white/50 rounded-full flex justify-center p-1 hover:border-clan-gold transition-colors duration-300">
+              <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-scroll-mouse hover:bg-clan-gold"></div>
+            </div>
+            <span className="text-white/50 text-xs mt-2 hover:text-clan-gold transition-colors duration-300">
+              {getText("scrollDown", language) || "Scroll down"}
+            </span>
+          </a>
+        </div>
+      </div>
     </section>
   );
 };
