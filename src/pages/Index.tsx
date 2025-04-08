@@ -8,6 +8,7 @@ import Gallery from "@/components/Gallery";
 import Recruitment from "@/components/Recruitment";
 import Footer from "@/components/Footer";
 import LoadingScreen from "@/components/LoadingScreen";
+import BannerVideo from "@/components/BannerVideo";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -62,6 +63,7 @@ const Index = () => {
       >
         <Navbar />
         <Hero />
+        <BannerVideo />
         <Stats />
         <Members />
         <Achievements />
