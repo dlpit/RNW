@@ -19,4 +19,7 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  define: {
+    'process.env.BUILD_MODE': JSON.stringify(process.env.BUILD_MODE)
+  }
 }));
