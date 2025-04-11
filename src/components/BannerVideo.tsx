@@ -1,5 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { cn } from "@/lib/utils";
+import { ThemeContext } from "@/theme";
+import { LanguageContext } from "@/Provider/language";
+import { getText } from "@/lib/translations";
 
 interface BannerVideoProps {
   videoId?: string;
@@ -14,6 +17,8 @@ const BannerVideo = ({
 }: BannerVideoProps) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { isDarkMode } = useContext(ThemeContext);
+  const { language } = useContext(LanguageContext);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -38,13 +43,24 @@ const BannerVideo = ({
   }, []);
 
   return (
-    <section id="banner-video" className="py-16 relative">
+    <section
+      id="banner-video"
+      className={cn("py-16 relative", isDarkMode ? "bg-gray-50" : "")}
+    >
       <div className="section-container">
-        <h2 className="section-title text-center mb-8">Clan Highlights</h2>
+        <h2
+          className={cn(
+            "text-3xl md:text-4xl font-bold text-center mb-8",
+            isDarkMode ? "text-orange-500" : "gold-gradient-text"
+          )}
+        >
+          {getText("clanHighlights", language) || "Clan Highlights"}
+        </h2>
         <div
           id="banner-video-container"
           className={cn(
-            "glass-card overflow-hidden rounded-xl transition-all duration-1000",
+            "overflow-hidden rounded-xl transition-all duration-1000 shadow-lg",
+            isDarkMode ? "bg-white border border-gray-200" : "glass-card",
             isVisible
               ? "opacity-100 translate-y-0"
               : "opacity-0 translate-y-10",
@@ -52,8 +68,18 @@ const BannerVideo = ({
           )}
         >
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-clan-dark-accent/50 backdrop-blur-sm z-10">
-              <div className="w-12 h-12 rounded-full border-4 border-clan-gold border-t-transparent animate-spin"></div>
+            <div
+              className={cn(
+                "absolute inset-0 flex items-center justify-center backdrop-blur-sm z-10",
+                isDarkMode ? "bg-gray-100/70" : "bg-clan-dark-accent/50"
+              )}
+            >
+              <div
+                className={cn(
+                  "w-12 h-12 rounded-full border-4 border-t-transparent animate-spin",
+                  isDarkMode ? "border-orange-500" : "border-clan-gold"
+                )}
+              ></div>
             </div>
           )}
           <div className="relative aspect-[21/9] w-full">
@@ -69,8 +95,14 @@ const BannerVideo = ({
             ></iframe>
           </div>
         </div>
-        <p className="text-center text-white/70 mt-4">
-          Watch our clan defeat the elite dark dragon in SoS4 season
+        <p
+          className={cn(
+            "text-center mt-4",
+            isDarkMode ? "text-gray-600" : "text-white/70"
+          )}
+        >
+          {getText("watchClanVideo", language) ||
+            "Watch our clan defeat the elite dark dragon in SoS4 season"}
         </p>
       </div>
     </section>

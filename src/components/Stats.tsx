@@ -347,9 +347,10 @@ const Stats = () => {
     >
       <div className="section-container">
         <h2
-          className={`section-title text-center mb-16 ${
-            isDarkMode ? "text-gray-800" : "text-white"
-          }`}
+          className={cn(
+            "text-3xl md:text-4xl font-bold text-center mb-16",
+            isDarkMode ? "text-orange-500" : "gold-gradient-text"
+          )}
         >
           {getText("clanStats", language) || "Thống Kê Clan"}
         </h2>

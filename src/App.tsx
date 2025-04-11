@@ -85,11 +85,11 @@ const App = () => {
             */}
 
             {/* Admin routes (only for admin users) */}
-            <Route path="/admin" element={<AdminRoute />}>
+            {/* <Route path="/admin" element={<AdminRoute />}>
               <Route index element={<AdminDashboard />} />
               <Route path="users" element={<AdminUsers />} />
               <Route path="settings" element={<AdminSettings />} />
-            </Route>
+            </Route> */}
 
             {/* 404 catch-all route */}
             <Route path="*" element={<NotFound />} />

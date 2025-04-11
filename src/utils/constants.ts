@@ -12,7 +12,7 @@ if (buildMode === 'dev') {
 
 // Production environment 
 if (buildMode === 'production') {
-  apiRoot = 'https://rnw-api-0gbu.onrender.com';
+  apiRoot = 'https://api.example.com'; // Replace with your production API URL
   // console.log('🚀 API Root set to Production:', apiRoot);
 }
 
