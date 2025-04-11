@@ -185,7 +185,7 @@ const KingdomCard = () => {
                   isDarkMode ? "text-gray-800" : "text-white"
                 }`}
               >
-                11.079.726.553
+                11.579.726.553
               </TableCell>
             </TableRow>
             <TableRow
@@ -316,7 +316,7 @@ const Stats = () => {
     },
     {
       icon: <Star size={28} />,
-      value: "17",
+      value: "24",
       label: getText("t5Members", language),
       delay: 300,
     },
@@ -328,7 +328,7 @@ const Stats = () => {
     },
     {
       icon: <Zap size={28} />,
-      value: "773M+",
+      value: "1.5B+",
       label: getText("kvkMerit", language),
       delay: 500,
     },
