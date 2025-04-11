@@ -8,11 +8,37 @@ import {
   submitApplication,
 } from "@/redux/recruitment/recruitmentSlice";
 import { LanguageContext } from "@/Provider/language";
+import { ThemeContext } from "@/theme";
 import { getText } from "@/lib/translations";
 import { validateRecruitmentForm } from "@/utils/validators";
 
+const formatNumberWithSemicolons = (value: string): string => {
+  // Remove all non-digit characters first
+  const digitsOnly = value.replace(/\D/g, "");
+
+  // Format with semicolons for thousand separators
+  if (digitsOnly) {
+    return digitsOnly.replace(/\B(?=(\d{3})+(?!\d))/g, ";");
+  }
+
+  return digitsOnly;
+};
+
+const formatNumberWithDots = (value: string): string => {
+  // Remove all non-digit characters first
+  const digitsOnly = value.replace(/\D/g, "");
+
+  // Format with dots for thousand separators
+  if (digitsOnly) {
+    return digitsOnly.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+
+  return digitsOnly;
+};
+
 const RecruitmentRequirements = () => {
   const { language } = useContext(LanguageContext);
+  const { isDarkMode } = useContext(ThemeContext);
 
   const requirements = [
     {
@@ -42,25 +68,46 @@ const RecruitmentRequirements = () => {
   ];
 
   return (
-    <div className="glass-card p-6">
-      <h3 className="text-xl font-semibold text-white mb-4">
+    <div
+      className={cn(
+        "p-6 rounded-xl shadow-lg",
+        isDarkMode
+          ? "bg-gray-50 border border-gray-200" // Match Stats.tsx theming
+          : "glass-card"
+      )}
+    >
+      <h3
+        className={cn(
+          "text-xl font-semibold mb-4",
+          isDarkMode ? "text-gray-800" : "text-white"
+        )}
+      >
         {getText("requirements", language)}
       </h3>
       <ul className="space-y-3">
         {requirements.map((req, index) => (
-          <li key={index} className="flex items-start text-white/80">
-            <span className="text-clan-gold mr-3 flex-shrink-0 mt-1">
+          <li key={index} className="flex items-start">
+            <span
+              className={cn(
+                "mr-3 flex-shrink-0 mt-1",
+                isDarkMode ? "text-orange-500" : "text-clan-gold"
+              )}
+            >
               {req.icon}
             </span>
-            <span>{req.text}</span>
+            <span className={isDarkMode ? "text-gray-600" : "text-white/80"}>
+              {req.text}
+            </span>
           </li>
         ))}
       </ul>
     </div>
   );
 };
+
 const RecruitmentBenefits = () => {
   const { language } = useContext(LanguageContext);
+  const { isDarkMode } = useContext(ThemeContext);
 
   const benefits = [
     getText("benefitTraining", language),
@@ -72,15 +119,34 @@ const RecruitmentBenefits = () => {
   ];
 
   return (
-    <div className="glass-card p-6">
-      <h3 className="text-xl font-semibold text-white mb-4">
+    <div
+      className={cn(
+        "p-6 rounded-xl shadow-lg",
+        isDarkMode ? "bg-white border border-gray-200" : "glass-card"
+      )}
+    >
+      <h3
+        className={cn(
+          "text-xl font-semibold mb-4",
+          isDarkMode ? "text-gray-800" : "text-white"
+        )}
+      >
         {getText("benefits", language)}
       </h3>
       <ul className="space-y-3">
         {benefits.map((benefit, index) => (
-          <li key={index} className="flex items-start text-white/80">
-            <span className="text-clan-gold mr-3 mt-1">•</span>
-            <span>{benefit}</span>
+          <li key={index} className="flex items-start">
+            <span
+              className={cn(
+                "mr-3 mt-1",
+                isDarkMode ? "text-orange-500" : "text-clan-gold"
+              )}
+            >
+              •
+            </span>
+            <span className={isDarkMode ? "text-gray-600" : "text-white/80"}>
+              {benefit}
+            </span>
           </li>
         ))}
       </ul>
@@ -94,6 +160,7 @@ const Recruitment = () => {
     (state) => state.recruitment
   );
   const { language } = useContext(LanguageContext);
+  const { isDarkMode } = useContext(ThemeContext);
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>
   >({});
@@ -114,7 +181,13 @@ const Recruitment = () => {
       [name]: true,
     }));
 
-    dispatch(updateFormData({ [name]: value }));
+    // Apply formatting for power and killPoint fields
+    if (name === "power" || name === "killPoint") {
+      const formattedValue = formatNumberWithDots(value);
+      dispatch(updateFormData({ [name]: formattedValue }));
+    } else {
+      dispatch(updateFormData({ [name]: value }));
+    }
   };
 
   useEffect(() => {
@@ -127,7 +200,8 @@ const Recruitment = () => {
       if (!result.isValid) {
         formIsValid = false;
         if (touchedFields[field]) {
-          errors[field] = result.errorMessage || "";
+          errors[field] =
+            "errorMessage" in result ? result.errorMessage || "" : "";
         }
       }
     });
@@ -152,7 +226,8 @@ const Recruitment = () => {
     Object.entries(validationResults).forEach(([field, result]) => {
       if (!result.isValid) {
         formIsValid = false;
-        errors[field] = result.errorMessage || "";
+        errors[field] =
+          "errorMessage" in result ? result.errorMessage || "" : "";
       }
     });
 
@@ -168,7 +243,13 @@ const Recruitment = () => {
   const renderValidationError = (fieldName: string) => {
     if (validationErrors[fieldName] && touchedFields[fieldName]) {
       return (
-        <p className="text-red-400 text-xs mt-1">
+        <p
+          className={
+            isDarkMode
+              ? "text-red-400 text-xs mt-1"
+              : "text-red-500 text-xs mt-1"
+          }
+        >
           {validationErrors[fieldName]}
         </p>
       );
@@ -179,10 +260,20 @@ const Recruitment = () => {
   return (
     <section id="recruitment" className="py-24 relative">
       <div className="section-container">
-        <h2 className="section-title text-center mb-4">
+        <h2
+          className={cn(
+            "text-3xl md:text-4xl font-bold mb-4 text-center",
+            isDarkMode ? "text-orange-500" : "gold-gradient-text"
+          )}
+        >
           {getText("joinOurClan", language)}
         </h2>
-        <p className="text-center text-white/70 max-w-2xl mx-auto mb-16">
+        <p
+          className={cn(
+            "text-center max-w-2xl mx-auto mb-16",
+            isDarkMode ? "text-gray-500" : "text-white/85"
+          )}
+        >
           {getText("recruitmentDescription", language)}
         </p>
 
@@ -193,26 +284,62 @@ const Recruitment = () => {
           </div>
 
           <div className="lg:col-span-2">
-            <div className="glass-card p-6">
-              <h3 className="text-xl font-semibold text-white mb-6">
+            <div
+              className={cn(
+                "p-6 rounded-xl shadow-lg",
+                isDarkMode ? "bg-white border border-gray-200" : "glass-card"
+              )}
+            >
+              <h3
+                className={cn(
+                  "text-xl font-semibold mb-6",
+                  isDarkMode ? "text-gray-800" : "text-white"
+                )}
+              >
                 {getText("applicationForm", language)}
               </h3>
 
               {error && (
-                <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-4 text-center">
-                  <p className="text-white/90">{error}</p>
+                <div
+                  className={cn(
+                    "border rounded-lg p-4 mb-4 text-center",
+                    isDarkMode
+                      ? "bg-red-50 border-red-200 text-red-700"
+                      : "bg-red-500/10 border-red-500/30 text-white/90"
+                  )}
+                >
+                  <p>{error}</p>
                 </div>
               )}
 
               {isSubmitted ? (
-                <div className="bg-clan-gold/10 border border-clan-gold/30 rounded-lg p-6 text-center animate-scale-in">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-clan-gold/20 text-clan-gold mb-4">
+                <div
+                  className={cn(
+                    "rounded-lg p-6 text-center animate-scale-in",
+                    isDarkMode
+                      ? "bg-amber-50 border border-amber-200"
+                      : "bg-clan-gold/10 border border-clan-gold/30"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "inline-flex items-center justify-center w-16 h-16 rounded-full mb-4",
+                      isDarkMode
+                        ? "bg-amber-100 text-amber-600"
+                        : "bg-clan-gold/20 text-clan-gold"
+                    )}
+                  >
                     <Check size={32} />
                   </div>
-                  <h4 className="text-xl font-semibold text-white mb-2">
+                  <h4
+                    className={cn(
+                      "text-xl font-semibold mb-2",
+                      isDarkMode ? "text-gray-800" : "text-white"
+                    )}
+                  >
                     {getText("applicationSubmitted", language)}
                   </h4>
-                  <p className="text-white/70">
+                  <p className={isDarkMode ? "text-gray-600" : "text-white/70"}>
                     {getText("applicationThankYou", language)}
                   </p>
                 </div>
@@ -222,7 +349,10 @@ const Recruitment = () => {
                     <div>
                       <label
                         htmlFor="ingame"
-                        className="block text-white/70 mb-1"
+                        className={cn(
+                          "block mb-1",
+                          isDarkMode ? "text-gray-600" : "text-white/70"
+                        )}
                       >
                         {getText("inGameName", language)}
                       </label>
@@ -234,10 +364,17 @@ const Recruitment = () => {
                         value={formData.ingame}
                         onChange={handleChange}
                         className={cn(
-                          "w-full px-4 py-2 bg-clan-dark-accent border rounded-lg focus:outline-none focus:ring-2 focus:ring-clan-gold/50 text-white",
-                          validationErrors.ingame
-                            ? "border-red-400"
-                            : "border-white/10"
+                          "w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2",
+                          isDarkMode
+                            ? "bg-gray-50 text-gray-800 focus:ring-orange-500/50"
+                            : "bg-clan-dark-accent text-white focus:ring-clan-gold/50",
+                          validationErrors.ingame && touchedFields.ingame
+                            ? isDarkMode
+                              ? "border-red-500"
+                              : "border-red-400"
+                            : isDarkMode
+                            ? "border border-gray-200"
+                            : "border border-white/10"
                         )}
                         placeholder={getText("placeholderName", language)}
                       />
@@ -246,7 +383,10 @@ const Recruitment = () => {
                     <div>
                       <label
                         htmlFor="idIngame"
-                        className="block text-white/70 mb-1"
+                        className={cn(
+                          "block mb-1",
+                          isDarkMode ? "text-gray-600" : "text-white/70"
+                        )}
                       >
                         {getText("inGameID", language)}
                       </label>
@@ -258,10 +398,17 @@ const Recruitment = () => {
                         value={formData.idIngame}
                         onChange={handleChange}
                         className={cn(
-                          "w-full px-4 py-2 bg-clan-dark-accent border rounded-lg focus:outline-none focus:ring-2 focus:ring-clan-gold/50 text-white",
-                          validationErrors.idIngame
-                            ? "border-red-400"
-                            : "border-white/10"
+                          "w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2",
+                          isDarkMode
+                            ? "bg-gray-50 text-gray-800 focus:ring-orange-500/50"
+                            : "bg-clan-dark-accent text-white focus:ring-clan-gold/50",
+                          validationErrors.idIngame && touchedFields.idIngame
+                            ? isDarkMode
+                              ? "border-red-500"
+                              : "border-red-400"
+                            : isDarkMode
+                            ? "border border-gray-200"
+                            : "border border-white/10"
                         )}
                         placeholder={getText("placeholderID", language)}
                       />
@@ -273,7 +420,10 @@ const Recruitment = () => {
                     <div>
                       <label
                         htmlFor="power"
-                        className="block text-white/70 mb-1"
+                        className={cn(
+                          "block mb-1",
+                          isDarkMode ? "text-gray-600" : "text-white/70"
+                        )}
                       >
                         {getText("powerLevel", language)}
                       </label>
@@ -285,10 +435,17 @@ const Recruitment = () => {
                         value={formData.power}
                         onChange={handleChange}
                         className={cn(
-                          "w-full px-4 py-2 bg-clan-dark-accent border rounded-lg focus:outline-none focus:ring-2 focus:ring-clan-gold/50 text-white",
-                          validationErrors.power
-                            ? "border-red-400"
-                            : "border-white/10"
+                          "w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2",
+                          isDarkMode
+                            ? "bg-gray-50 text-gray-800 focus:ring-orange-500/50"
+                            : "bg-clan-dark-accent text-white focus:ring-clan-gold/50",
+                          validationErrors.power && touchedFields.power
+                            ? isDarkMode
+                              ? "border-red-500"
+                              : "border-red-400"
+                            : isDarkMode
+                            ? "border border-gray-200"
+                            : "border border-white/10"
                         )}
                         placeholder={getText("placeholderPower", language)}
                       />
@@ -297,7 +454,10 @@ const Recruitment = () => {
                     <div>
                       <label
                         htmlFor="killPoint"
-                        className="block text-white/70 mb-1"
+                        className={cn(
+                          "block mb-1",
+                          isDarkMode ? "text-gray-600" : "text-white/70"
+                        )}
                       >
                         {getText("killPoints", language)}
                       </label>
@@ -309,10 +469,17 @@ const Recruitment = () => {
                         value={formData.killPoint}
                         onChange={handleChange}
                         className={cn(
-                          "w-full px-4 py-2 bg-clan-dark-accent border rounded-lg focus:outline-none focus:ring-2 focus:ring-clan-gold/50 text-white",
-                          validationErrors.killPoint
-                            ? "border-red-400"
-                            : "border-white/10"
+                          "w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2",
+                          isDarkMode
+                            ? "bg-gray-50 text-gray-800 focus:ring-orange-500/50"
+                            : "bg-clan-dark-accent text-white focus:ring-clan-gold/50",
+                          validationErrors.killPoint && touchedFields.killPoint
+                            ? isDarkMode
+                              ? "border-red-500"
+                              : "border-red-400"
+                            : isDarkMode
+                            ? "border border-gray-200"
+                            : "border border-white/10"
                         )}
                         placeholder={getText("placeholderKP", language)}
                       />
@@ -324,7 +491,10 @@ const Recruitment = () => {
                     <div>
                       <label
                         htmlFor="email"
-                        className="block text-white/70 mb-1"
+                        className={cn(
+                          "block mb-1",
+                          isDarkMode ? "text-gray-600" : "text-white/70"
+                        )}
                       >
                         {getText("email", language)}
                       </label>
@@ -336,10 +506,17 @@ const Recruitment = () => {
                         value={formData.email}
                         onChange={handleChange}
                         className={cn(
-                          "w-full px-4 py-2 bg-clan-dark-accent border rounded-lg focus:outline-none focus:ring-2 focus:ring-clan-gold/50 text-white",
-                          validationErrors.email
-                            ? "border-red-400"
-                            : "border-white/10"
+                          "w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2",
+                          isDarkMode
+                            ? "bg-gray-50 text-gray-800 focus:ring-orange-500/50"
+                            : "bg-clan-dark-accent text-white focus:ring-clan-gold/50",
+                          validationErrors.email && touchedFields.email
+                            ? isDarkMode
+                              ? "border-red-500"
+                              : "border-red-400"
+                            : isDarkMode
+                            ? "border border-gray-200"
+                            : "border border-white/10"
                         )}
                         placeholder={getText("placeholderEmail", language)}
                       />
@@ -348,7 +525,10 @@ const Recruitment = () => {
                     <div>
                       <label
                         htmlFor="country"
-                        className="block text-white/70 mb-1"
+                        className={cn(
+                          "block mb-1",
+                          isDarkMode ? "text-gray-600" : "text-white/70"
+                        )}
                       >
                         {getText("country", language)}
                       </label>
@@ -360,10 +540,17 @@ const Recruitment = () => {
                         value={formData.country}
                         onChange={handleChange}
                         className={cn(
-                          "w-full px-4 py-2 bg-clan-dark-accent border rounded-lg focus:outline-none focus:ring-2 focus:ring-clan-gold/50 text-white",
-                          validationErrors.country
-                            ? "border-red-400"
-                            : "border-white/10"
+                          "w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2",
+                          isDarkMode
+                            ? "bg-gray-50 text-gray-800 focus:ring-orange-500/50"
+                            : "bg-clan-dark-accent text-white focus:ring-clan-gold/50",
+                          validationErrors.country && touchedFields.country
+                            ? isDarkMode
+                              ? "border-red-500"
+                              : "border-red-400"
+                            : isDarkMode
+                            ? "border border-gray-200"
+                            : "border border-white/10"
                         )}
                         placeholder={getText("placeholderCountry", language)}
                       />
@@ -374,7 +561,10 @@ const Recruitment = () => {
                   <div>
                     <label
                       htmlFor="language"
-                      className="block text-white/70 mb-1"
+                      className={cn(
+                        "block mb-1",
+                        isDarkMode ? "text-gray-600" : "text-white/70"
+                      )}
                     >
                       {getText("preferredLanguage", language)}
                     </label>
@@ -386,10 +576,17 @@ const Recruitment = () => {
                         value={formData.language}
                         onChange={handleChange}
                         className={cn(
-                          "w-full px-4 py-2 bg-clan-dark-accent border rounded-lg focus:outline-none focus:ring-2 focus:ring-clan-gold/50 text-white appearance-none pr-10",
-                          validationErrors.language
-                            ? "border-red-400"
-                            : "border-white/10"
+                          "w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 appearance-none pr-10",
+                          isDarkMode
+                            ? "bg-gray-50 text-gray-800 focus:ring-orange-500/50"
+                            : "bg-clan-dark-accent text-white focus:ring-clan-gold/50",
+                          validationErrors.language && touchedFields.language
+                            ? isDarkMode
+                              ? "border-red-500"
+                              : "border-red-400"
+                            : isDarkMode
+                            ? "border border-gray-200"
+                            : "border border-white/10"
                         )}
                       >
                         <option value="Vietnamese">
@@ -408,7 +605,12 @@ const Recruitment = () => {
                           {getText("langOther", language)}
                         </option>
                       </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-white/70">
+                      <div
+                        className={cn(
+                          "pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4",
+                          isDarkMode ? "text-gray-500" : "text-white/70"
+                        )}
+                      >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           width="16"
@@ -434,7 +636,9 @@ const Recruitment = () => {
                       className={cn(
                         "w-full py-3 rounded-lg font-semibold transition-all duration-300",
                         "flex items-center justify-center",
-                        "bg-gradient-gold text-clan-dark hover:shadow-[0_0_15px_rgba(255,215,0,0.6)]",
+                        isDarkMode
+                          ? "bg-orange-500 text-white hover:bg-orange-600 hover:shadow-lg"
+                          : "bg-gradient-gold text-clan-dark hover:shadow-[0_0_15px_rgba(255,215,0,0.6)]",
                         (isSubmitting || !isFormValid) &&
                           "opacity-70 cursor-not-allowed"
                       )}
@@ -442,7 +646,9 @@ const Recruitment = () => {
                       {isSubmitting ? (
                         <>
                           <svg
-                            className="animate-spin -ml-1 mr-2 h-4 w-4 text-clan-dark"
+                            className={`animate-spin -ml-1 mr-2 h-4 w-4 ${
+                              isDarkMode ? "text-white" : "text-clan-dark"
+                            }`}
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
                             viewBox="0 0 24 24"

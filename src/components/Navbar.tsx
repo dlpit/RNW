@@ -7,10 +7,11 @@ import { getText } from "@/lib/translations";
 import {
   FaDiscord,
   FaFacebook,
-  FaPhoneAlt,
+  FaYoutube,
   FaSun,
   FaMoon,
   FaLanguage,
+  FaPhoneAlt,
 } from "react-icons/fa";
 
 const Navbar = () => {
@@ -131,7 +132,7 @@ const Navbar = () => {
                 <FaDiscord size={20} />
               </a>
               <a
-                href="https://facebook.com"
+                href="https://www.facebook.com/rnw284/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white dark:text-gray-700 hover:text-clan-gold dark:hover:text-orange-500 transition-colors duration-200"
@@ -140,13 +141,13 @@ const Navbar = () => {
                 <FaFacebook size={20} />
               </a>
               <a
-                href="https://zalo.me"
+                href="https://www.youtube.com/@rnwofficial-284"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white dark:text-gray-700 hover:text-clan-gold dark:hover:text-orange-500 transition-colors duration-200"
-                aria-label="Zalo"
+                aria-label="YouTube"
               >
-                <FaPhoneAlt size={17} />
+                <FaYoutube size={20} />
               </a>
               <div className="border-l border-white/20 dark:border-black/20 pl-4 flex items-center space-x-2">
                 <button

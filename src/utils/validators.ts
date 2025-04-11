@@ -45,8 +45,14 @@ export const validatePower = (value: string, language: "en" | "vi"): ValidationR
     return { isValid: false, errorMessage: getText("validation.required" as any, language) };
   }
   
-  // Remove commas for validation
-  const numericValue = parseInt(value.replace(/,/g, ''), 10);
+  // Check if input contains only numbers and dots
+  const numericRegex = /^[0-9.]+$/;
+  if (!numericRegex.test(value)) {
+    return { isValid: false, errorMessage: getText("validation.power.numeric" as any, language) };
+  }
+  
+  // Remove dots for validation
+  const numericValue = parseInt(value.replace(/\./g, ''), 10);
   
   if (isNaN(numericValue)) {
     return { isValid: false, errorMessage: getText("validation.power.numeric" as any, language) };
@@ -67,8 +73,14 @@ export const validateKillPoint = (value: string, language: "en" | "vi"): Validat
     return { isValid: false, errorMessage: getText("validation.required" as any, language) };
   }
   
-  // Remove commas for validation
-  const numericValue = parseInt(value.replace(/,/g, ''), 10);
+  // Check if input contains only numbers and dots
+  const numericRegex = /^[0-9.]+$/;
+  if (!numericRegex.test(value)) {
+    return { isValid: false, errorMessage: getText("validation.killPoint.numeric" as any, language) };
+  }
+  
+  // Remove dots for validation
+  const numericValue = parseInt(value.replace(/\./g, ''), 10);
   
   if (isNaN(numericValue)) {
     return { isValid: false, errorMessage: getText("validation.killPoint.numeric" as any, language) };

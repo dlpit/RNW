@@ -13,6 +13,7 @@ export const injectStore = (store: any) => {
 const authorizedAxiosInstance = axios.create({
   baseURL: API_ROOT,
   timeout: 15000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }

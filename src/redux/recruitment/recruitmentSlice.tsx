@@ -40,15 +40,16 @@ export const submitApplication = createAsyncThunk(
       // Convert power and killPoint to numbers for API
       const apiData = {
         ...formData,
-        power: parseInt(formData.power.replace(/,/g, ""), 10),
-        killPoint: parseInt(formData.killPoint.replace(/,/g, ""), 10),
+        power: parseInt(formData.power.replace(/\./g, ""), 10),
+        killPoint: parseInt(formData.killPoint.replace(/\./g, ""), 10),
       };
 
-      // Using Axios instead of fetch
+      // Using authorized Axios instance
       const response = await authorizedAxiosInstance.post(
         "/api/applications",
         apiData
       );
+
       return response.data;
     } catch (error: any) {
       return rejectWithValue(
