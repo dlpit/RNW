@@ -84,7 +84,7 @@ const App = () => {
             </Route>
             */}
 
-            {/* Admin routes (only for admin users) */}
+            /* Admin routes (only for admin users) */
             {/* <Route path="/admin" element={<AdminRoute />}>
               <Route index element={<AdminDashboard />} />
               <Route path="users" element={<AdminUsers />} />
