@@ -52,11 +52,26 @@ export const submitApplication = createAsyncThunk(
 
       return response.data;
     } catch (error: any) {
-      return rejectWithValue(
-        error.response?.data?.message ||
-          error.message ||
-          "Failed to submit application"
-      );
+      // Ensure we always return a string, never an object
+      let errorMessage = "Failed to submit application";
+
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (
+        error.response?.data &&
+        typeof error.response.data === "string"
+      ) {
+        errorMessage = error.response.data;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      // Double check that errorMessage is a string
+      if (typeof errorMessage !== "string") {
+        errorMessage = "An unexpected error occurred";
+      }
+
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -89,7 +104,13 @@ export const recruitmentSlice = createSlice({
       })
       .addCase(submitApplication.rejected, (state, action) => {
         state.isSubmitting = false;
-        state.error = (action.payload as string) || "An error occurred";
+        // Ensure error is always a string
+        const errorPayload = action.payload;
+        if (typeof errorPayload === "string") {
+          state.error = errorPayload;
+        } else {
+          state.error = "An error occurred";
+        }
       });
   },
 });
