@@ -9,46 +9,27 @@ import {
   Navigate,
   Outlet,
 } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 import Index from "./pages/Index";
 import NotFound from "./pages/404/NotFound";
 
 // You'll need to create these components
 import AdminDashboard from "./pages/Admin/Dashboard";
-import AdminUsers from "./pages/Admin/Users";
-import AdminSettings from "./pages/Admin/Settings";
+import AdminLogin from "./pages/Auth/AdminLogin";
 
 const queryClient = new QueryClient();
 
-// Replace this with your actual auth logic when needed
-const useAuth = () => {
-  // This is a placeholder - implement your actual auth logic here
-  return {
-    user: localStorage.getItem("user")
-      ? JSON.parse(localStorage.getItem("user"))
-      : null,
-  };
-};
-
-/* 
-// Protected route component for authenticated users only
-const ProtectedRoute = () => {
-  const { user } = useAuth();
-  if (!user) return <Navigate to="/login" replace />;
-  return <Outlet />;
-};
-*/
-
-// Temporary: Admin route component without permission checks (for testing only)
+// Admin route component with real authentication check
 const AdminRoute = () => {
-  // Bypassing admin check for testing purposes
-  return <Outlet />;
+  const { user } = useSelector((state: RootState) => state.auth);
 
-  // Original code (commented out for testing)
-  /*
-  const { user } = useAuth();
-  if (!user || user.role !== "admin") return <Navigate to="/" replace />;
+  // Check if user is logged in and has admin role
+  if (!user || user.role !== "admin") {
+    return <Navigate to="/login" replace />;
+  }
+
   return <Outlet />;
-  */
 };
 
 /*
@@ -68,28 +49,14 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Public route */}
+            {/* Public routes */}
             <Route path="/" element={<Index />} />
+            <Route path="/login" element={<AdminLogin />} />
 
-            {/* 
-            // Unauthorized routes (only for non-authenticated users)
-            <Route element={<UnauthorizedRoute />}>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-            </Route>
-            
-            // Protected routes (only for authenticated users)
-            <Route element={<ProtectedRoute />}>
-              <Route path="/dashboard" element={<Index />} />
-            </Route>
-            */}
-
-            /* Admin routes (only for admin users) */
-            {/* <Route path="/admin" element={<AdminRoute />}>
+            {/* Admin protected routes */}
+            <Route path="/admin" element={<AdminRoute />}>
               <Route index element={<AdminDashboard />} />
-              <Route path="users" element={<AdminUsers />} />
-              <Route path="settings" element={<AdminSettings />} />
-            </Route> */}
+            </Route>
 
             {/* 404 catch-all route */}
             <Route path="*" element={<NotFound />} />

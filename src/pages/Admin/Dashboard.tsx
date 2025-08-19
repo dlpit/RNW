@@ -33,6 +33,7 @@ import {
   Search,
   PlusCircle,
   UserRoundPlus,
+  LogOut,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -44,6 +45,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { logout } from "@/redux/auth/authSlice";
+import { RootState, AppDispatch } from "@/redux/store";
+import { toast } from "@/hooks/use-toast";
 
 // Sample data for the dashboard
 const revenueData = [
@@ -142,15 +148,40 @@ const LoadingRecentActivity = () => (
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [isLoading, setIsLoading] = useState(false);
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+  const { user } = useSelector((state: RootState) => state.auth);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    toast({
+      title: "Đăng xuất thành công",
+      description: "Bạn đã đăng xuất khỏi hệ thống",
+    });
+    navigate("/", { replace: true });
+  };
 
   return (
     <div className="flex flex-col gap-6 p-6 md:p-8">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Welcome to your admin dashboard. View and manage your platform's
-          performance.
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground">
+              Welcome to your admin dashboard
+              {user?.name ? `, ${user.name}` : ""}. View and manage your
+              platform's performance.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            className="flex items-center gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Đăng xuất
+          </Button>
+        </div>
       </div>
 
       <Tabs

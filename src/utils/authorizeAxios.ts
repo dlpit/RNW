@@ -33,6 +33,15 @@ authorizedAxiosInstance.interceptors.request.use(
         });
       }
     }
+    // Attach auth token if exists
+    const token = localStorage.getItem('token');
+    if (token) {
+      if (config.headers) {
+        (config.headers as any)['Authorization'] = `Bearer ${token}`;
+      } else {
+        config.headers = { Authorization: `Bearer ${token}` } as any;
+      }
+    }
     
     return config;
   },
