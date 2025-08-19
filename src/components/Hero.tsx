@@ -77,7 +77,7 @@ const Hero = () => {
         >
           <span className="gold-gradient-text">RN:W</span>
         </h1>
-        <p
+        <div
           className={`mt-4 text-xl md:text-2xl ${
             isDarkMode ? "text-white/90" : "text-white"
           } font-medium transition-all duration-1000 delay-500 ${
@@ -85,7 +85,7 @@ const Hero = () => {
           }`}
         >
           {getFormattedClanName()}
-        </p>
+        </div>
 
         <p
           className={`mt-6 max-w-2xl ${
