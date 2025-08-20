@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -45,6 +45,19 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Tooltip as UITooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { logout } from "@/redux/auth/authSlice";
@@ -162,6 +175,18 @@ const AdminDashboard = () => {
     fileName?: string;
   }>({});
   const [importHistory, setImportHistory] = useState<any[]>([]);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalRecords: 0,
+    limit: 10,
+  });
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [selectedSheets, setSelectedSheets] = useState<{
+    fileName: string;
+    sheets: string[];
+  } | null>(null);
+  const [showSheetsModal, setShowSheetsModal] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
@@ -189,8 +214,10 @@ const AdminDashboard = () => {
         metadata
       );
 
-      // Reload import history
-      await loadImportHistory();
+      // Reload import history only if not already loading
+      if (!isLoadingHistory) {
+        await loadImportHistory();
+      }
 
       return response.data;
     } catch (error) {
@@ -199,17 +226,36 @@ const AdminDashboard = () => {
     }
   };
 
-  const loadImportHistory = async () => {
+  const loadImportHistory = useCallback(async () => {
+    if (isLoadingHistory) return; // Prevent duplicate calls
+
     try {
+      setIsLoadingHistory(true);
       const response = await authorizedAxiosInstance.get("/api/file-imports", {
         params: { page: 1, limit: 10 },
       });
 
-      setImportHistory(response.data?.imports || []);
+      // Handle the new API response structure
+      if (response.data?.status === "success" && response.data?.data) {
+        setImportHistory(response.data.data.imports || []);
+        setPagination(
+          response.data.data.pagination || {
+            currentPage: 1,
+            totalPages: 1,
+            totalRecords: 0,
+            limit: 10,
+          }
+        );
+      } else {
+        // Fallback for old response structure
+        setImportHistory(response.data?.imports || []);
+      }
     } catch (error) {
       console.error("Error loading import history:", error);
+    } finally {
+      setIsLoadingHistory(false);
     }
-  };
+  }, [isLoadingHistory]);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -346,10 +392,33 @@ const AdminDashboard = () => {
     downloadSampleExcel(headers, "lord_data_template.xlsx");
   };
 
+  const handleShowSheets = (fileName: string, sheets: string[]) => {
+    setSelectedSheets({ fileName, sheets });
+    setShowSheetsModal(true);
+  };
+
+  const handleCloseSheetsModal = () => {
+    setShowSheetsModal(false);
+    setSelectedSheets(null);
+  };
+
   // Load import history when component mounts
   useEffect(() => {
-    loadImportHistory();
-  }, []);
+    let isMounted = true;
+
+    const loadData = async () => {
+      if (isMounted && !isLoadingHistory) {
+        await loadImportHistory();
+      }
+    };
+
+    loadData();
+
+    // Cleanup function to prevent state updates if component unmounts
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Load once when component mounts
 
   return (
     <div className="flex flex-col gap-6 p-6 md:p-8">
@@ -873,82 +942,141 @@ const AdminDashboard = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {importHistory.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>File Name</TableHead>
-                      <TableHead>Sheets</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Imported By</TableHead>
-                      <TableHead>Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {importHistory.map((log: any) => (
-                      <TableRow key={log.id}>
-                        <TableCell className="font-medium">
-                          <div>
-                            <p>{log.fileName}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {(log.fileSize / 1024).toFixed(1)} KB •{" "}
-                              {log.fileType?.toUpperCase()}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            {log.sheetNames && log.sheetNames.length > 0 ? (
-                              <>
-                                <p className="font-medium text-xs">
-                                  {log.sheetNames[0]}
-                                </p>
-                                {log.sheetNames.length > 1 && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs mt-1"
-                                  >
-                                    +{log.sheetNames.length - 1} more
-                                  </Badge>
-                                )}
-                              </>
-                            ) : (
-                              <span className="text-muted-foreground">N/A</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              log.status === "success"
-                                ? "default"
-                                : "destructive"
-                            }
-                          >
-                            {log.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {log.importedBy}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="text-sm">
-                              {new Date(
-                                log.createdAt || log.importedAt
-                              ).toLocaleDateString()}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(
-                                log.createdAt || log.importedAt
-                              ).toLocaleTimeString()}
-                            </p>
-                          </div>
-                        </TableCell>
+              {isLoadingHistory ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <span className="ml-2">Đang tải lịch sử import...</span>
+                </div>
+              ) : importHistory.length > 0 ? (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>File Name</TableHead>
+                        <TableHead>Sheets</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Imported By</TableHead>
+                        <TableHead>Date</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {importHistory.map((log: any) => (
+                        <TableRow key={log.id}>
+                          <TableCell className="font-medium">
+                            <div>
+                              <p>{log.fileName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {log.fileSize
+                                  ? log.fileSize > 1024 * 1024
+                                    ? `${(log.fileSize / (1024 * 1024)).toFixed(
+                                        1
+                                      )} MB`
+                                    : `${(log.fileSize / 1024).toFixed(1)} KB`
+                                  : "N/A"}{" "}
+                                • {log.fileType?.toUpperCase() || "N/A"}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              {log.sheetNames && log.sheetNames.length > 0 ? (
+                                <>
+                                  <p className="font-medium text-xs">
+                                    {log.sheetNames[0]}
+                                  </p>
+                                  {log.sheetNames.length > 1 && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-xs mt-1 h-6 px-2"
+                                      onClick={() =>
+                                        handleShowSheets(
+                                          log.fileName,
+                                          log.sheetNames
+                                        )
+                                      }
+                                    >
+                                      +{log.sheetNames.length - 1} more
+                                    </Button>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-muted-foreground">
+                                  N/A
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                log.status === "success"
+                                  ? "default"
+                                  : "destructive"
+                              }
+                              className="text-xs"
+                            >
+                              {log.status === "success"
+                                ? "Thành công"
+                                : "Thất bại"}
+                            </Badge>
+                            {log.errorMessage && (
+                              <div className="mt-1">
+                                <TooltipProvider>
+                                  <UITooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs cursor-help"
+                                      >
+                                        Error Details
+                                      </Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-sm">
+                                        {log.errorMessage}
+                                      </p>
+                                    </TooltipContent>
+                                  </UITooltip>
+                                </TooltipProvider>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {log.importedBy}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="text-sm">
+                                {new Date(
+                                  log.createdAt || log.importedAt
+                                ).toLocaleDateString()}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(
+                                  log.createdAt || log.importedAt
+                                ).toLocaleTimeString()}
+                              </p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  {/* Pagination Info */}
+                  {pagination.totalRecords > 0 && (
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <p className="text-sm text-muted-foreground">
+                        Hiển thị {importHistory.length} trong tổng số{" "}
+                        {pagination.totalRecords} file imports
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Trang {pagination.currentPage} / {pagination.totalPages}
+                      </p>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-8">
                   <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-muted flex items-center justify-center">
@@ -982,6 +1110,69 @@ const AdminDashboard = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Sheets Modal */}
+      <Dialog open={showSheetsModal} onOpenChange={setShowSheetsModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Danh sách Sheets</DialogTitle>
+            <DialogDescription>
+              Tất cả sheets trong file:{" "}
+              <span className="font-medium">{selectedSheets?.fileName}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            {selectedSheets?.sheets && selectedSheets.sheets.length > 0 ? (
+              <div className="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto">
+                {selectedSheets.sheets.map((sheet, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-primary">
+                          {index + 1}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{sheet}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Sheet {index + 1} của {selectedSheets.sheets.length}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge
+                      variant={index === 0 ? "default" : "secondary"}
+                      className="text-xs"
+                    >
+                      {index === 0 ? "Đã import" : "Có sẵn"}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                Không có sheet nào được tìm thấy
+              </div>
+            )}
+            <div className="mt-4 pt-4 border-t">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>
+                  Tổng số sheets: {selectedSheets?.sheets?.length || 0}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCloseSheetsModal}
+                >
+                  Đóng
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
