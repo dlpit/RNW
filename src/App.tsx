@@ -22,11 +22,34 @@ const queryClient = new QueryClient();
 
 // Admin route component with real authentication check
 const AdminRoute = () => {
-  const { user } = useSelector((state: RootState) => state.auth);
+  const { user, refreshToken } = useSelector((state: RootState) => state.auth);
 
-  // Check if user is logged in and has admin role
+  // Chỉ check user và refreshToken, KHÔNG check accessToken
+  // Vì accessToken có thể hết hạn và được refresh tự động bởi axios interceptor
   if (!user || user.role !== "admin") {
-    return <Navigate to="/login" replace />;
+    // Fallback check localStorage nếu Redux state chưa được khôi phục
+    const storedRefreshToken = localStorage.getItem("refreshToken");
+    const storedUser = localStorage.getItem("user");
+
+    if (!storedRefreshToken || !storedUser) {
+      return <Navigate to="/auth/admin-login" replace />;
+    }
+
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      if (parsedUser.role !== "admin") {
+        return <Navigate to="/auth/admin-login" replace />;
+      }
+    } catch {
+      return <Navigate to="/auth/admin-login" replace />;
+    }
+  }
+
+  // Kiểm tra refreshToken có tồn tại không (từ Redux hoặc localStorage)
+  const currentRefreshToken =
+    refreshToken || localStorage.getItem("refreshToken");
+  if (!currentRefreshToken) {
+    return <Navigate to="/auth/admin-login" replace />;
   }
 
   return <Outlet />;
@@ -51,11 +74,16 @@ const App = () => {
           <Routes>
             {/* Public routes */}
             <Route path="/" element={<Index />} />
-            <Route path="/login" element={<AdminLogin />} />
+            <Route path="/auth/admin-login" element={<AdminLogin />} />
+            <Route
+              path="/login"
+              element={<Navigate to="/auth/admin-login" replace />}
+            />
 
             {/* Admin protected routes */}
             <Route path="/admin" element={<AdminRoute />}>
               <Route index element={<AdminDashboard />} />
+              <Route path="dashboard" element={<AdminDashboard />} />
             </Route>
 
             {/* 404 catch-all route */}

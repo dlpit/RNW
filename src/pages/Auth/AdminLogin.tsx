@@ -37,7 +37,9 @@ export type AdminLoginValues = z.infer<typeof loginSchema>;
 const AdminLogin = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-  const { loading, user, error } = useSelector((s: RootState) => s.auth);
+  const { loading, user, accessToken, error } = useSelector(
+    (s: RootState) => s.auth
+  );
 
   const form = useForm<AdminLoginValues>({
     resolver: zodResolver(loginSchema),
@@ -46,37 +48,33 @@ const AdminLogin = () => {
 
   // Check if already logged in via Redux state first, then localStorage fallback
   useEffect(() => {
-    if (user?.role === "admin") {
-      console.log("Redirecting to /admin - user from Redux:", user);
+    if (user?.role === "admin" && accessToken) {
       navigate("/admin", { replace: true });
       return;
     }
 
     // Fallback check localStorage if Redux state is empty (page refresh case)
     const existingUser = localStorage.getItem("user");
-    if (existingUser) {
+    const existingAccessToken = localStorage.getItem("accessToken");
+    if (existingUser && existingAccessToken) {
       try {
         const parsedUser = JSON.parse(existingUser);
         if (parsedUser && parsedUser.role === "admin") {
-          console.log(
-            "Redirecting to /admin - user from localStorage:",
-            parsedUser
-          );
           navigate("/admin", { replace: true });
         }
       } catch (e) {
         console.error("Error parsing user from localStorage:", e);
         localStorage.removeItem("user");
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
       }
     }
-  }, [user, navigate]);
+  }, [user, accessToken, navigate]);
 
   const onSubmit = async (values: AdminLoginValues) => {
-    console.log("Submitting login form:", values.username);
     const result = await dispatch(
       adminLogin({ username: values.username, password: values.password })
     );
-    console.log("Login dispatch result:", result);
   };
 
   return (

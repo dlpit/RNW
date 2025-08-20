@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -50,6 +50,13 @@ import { useNavigate } from "react-router-dom";
 import { logout } from "@/redux/auth/authSlice";
 import { RootState, AppDispatch } from "@/redux/store";
 import { toast } from "@/hooks/use-toast";
+import {
+  importFile,
+  validateAndExtractColumns,
+  downloadSampleExcel,
+  getExcelSheetNames,
+} from "@/utils/fileImport";
+import authorizedAxiosInstance from "@/utils/authorizeAxios";
 
 // Sample data for the dashboard
 const revenueData = [
@@ -148,9 +155,61 @@ const LoadingRecentActivity = () => (
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [isLoading, setIsLoading] = useState(false);
+  const [importedData, setImportedData] = useState<any[]>([]);
+  const [importInfo, setImportInfo] = useState<{
+    sheetName?: string;
+    availableSheets?: string[];
+    fileName?: string;
+  }>({});
+  const [importHistory, setImportHistory] = useState<any[]>([]);
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
+
+  // API functions
+  const saveImportMetadata = async (
+    file: File,
+    sheetNames: string[],
+    status: "success" | "failed",
+    errorMessage?: string
+  ) => {
+    try {
+      const metadata = {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.name.split(".").pop()?.toLowerCase() || "",
+        sheetNames: sheetNames,
+        importedBy: user?.email || user?.name || "Unknown",
+        status: status,
+        errorMessage: errorMessage || null,
+      };
+
+      const response = await authorizedAxiosInstance.post(
+        "/api/file-imports",
+        metadata
+      );
+
+      // Reload import history
+      await loadImportHistory();
+
+      return response.data;
+    } catch (error) {
+      console.error("Error saving import metadata:", error);
+      // Không throw error để không làm gián đoạn quá trình import chính
+    }
+  };
+
+  const loadImportHistory = async () => {
+    try {
+      const response = await authorizedAxiosInstance.get("/api/file-imports", {
+        params: { page: 1, limit: 10 },
+      });
+
+      setImportHistory(response.data?.imports || []);
+    } catch (error) {
+      console.error("Error loading import history:", error);
+    }
+  };
 
   const handleLogout = () => {
     dispatch(logout());
@@ -160,6 +219,137 @@ const AdminDashboard = () => {
     });
     navigate("/", { replace: true });
   };
+
+  const handleImport = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".csv,.xlsx,.xls";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        setIsLoading(true);
+        let availableSheets: string[] = [];
+        let result: any = null;
+
+        try {
+          // Get sheet names for Excel files
+          if (
+            file.name.toLowerCase().endsWith(".xlsx") ||
+            file.name.toLowerCase().endsWith(".xls")
+          ) {
+            availableSheets = await getExcelSheetNames(file);
+          }
+
+          result = await importFile(file, {
+            maxFileSize: 10,
+            skipEmptyRows: true,
+          });
+
+          // Set import info
+          const currentImportInfo = {
+            fileName: file.name,
+            availableSheets: availableSheets,
+            sheetName: availableSheets.includes("RNW Combat Stats Dashboard")
+              ? "RNW Combat Stats Dashboard"
+              : availableSheets[0],
+          };
+          setImportInfo(currentImportInfo);
+
+          // Validate and extract specific columns
+          const requiredColumns = [
+            "lord_id",
+            "name",
+            "Merits (new)",
+            "highest_power (new)",
+          ];
+          const validation = validateAndExtractColumns(result, requiredColumns);
+
+          if (validation.success) {
+            setImportedData(validation.data);
+
+            // Save metadata to backend - SUCCESS
+            try {
+              await saveImportMetadata(file, availableSheets, "success");
+            } catch (metadataError) {
+              console.error(
+                "Failed to save metadata, but import succeeded:",
+                metadataError
+              );
+            }
+
+            const sheetInfo = currentImportInfo.sheetName
+              ? ` từ sheet "${currentImportInfo.sheetName}"`
+              : "";
+
+            toast({
+              title: "Import thành công",
+              description: `Đã import ${validation.data.length} bản ghi${sheetInfo}`,
+            });
+
+            // Switch to analytics tab to show imported data
+            setActiveTab("analytics");
+          } else {
+            // Save metadata to backend - FAILED
+            try {
+              await saveImportMetadata(
+                file,
+                availableSheets,
+                "failed",
+                validation.errors.join("; ")
+              );
+            } catch (metadataError) {
+              console.error(
+                "Failed to save metadata for failed import:",
+                metadataError
+              );
+            }
+
+            toast({
+              variant: "destructive",
+              title: "Lỗi validation",
+              description: validation.errors.join("; "),
+            });
+          }
+        } catch (error) {
+          console.error("Import error:", error);
+
+          // Save metadata to backend - FAILED
+          try {
+            await saveImportMetadata(
+              file,
+              availableSheets,
+              "failed",
+              error instanceof Error ? error.message : "Unknown error"
+            );
+          } catch (metadataError) {
+            console.error(
+              "Failed to save metadata for error case:",
+              metadataError
+            );
+          }
+
+          toast({
+            variant: "destructive",
+            title: "Lỗi import",
+            description: "Có lỗi xảy ra khi import file",
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    input.click();
+  };
+
+  const handleDownloadTemplate = () => {
+    const headers = ["lord_id", "name", "Merits (new)", "highest_power (new)"];
+    downloadSampleExcel(headers, "lord_data_template.xlsx");
+  };
+
+  // Load import history when component mounts
+  useEffect(() => {
+    loadImportHistory();
+  }, []);
 
   return (
     <div className="flex flex-col gap-6 p-6 md:p-8">
@@ -173,14 +363,16 @@ const AdminDashboard = () => {
               platform's performance.
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleLogout}
-            className="flex items-center gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            Đăng xuất
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Đăng xuất
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -195,6 +387,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="import-history">Import History</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
           <div className="flex items-center gap-2">
@@ -206,9 +399,17 @@ const AdminDashboard = () => {
                 className="w-[200px] pl-8 md:w-[250px]"
               />
             </div>
-            <Button>
+            <Button
+              variant="outline"
+              onClick={handleDownloadTemplate}
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Template
+            </Button>
+            <Button onClick={handleImport} disabled={isLoading}>
               <Download className="mr-2 h-4 w-4" />
-              Export
+              {isLoading ? "Đang import..." : "Import"}
             </Button>
           </div>
         </div>
@@ -549,15 +750,218 @@ const AdminDashboard = () => {
         <TabsContent value="analytics" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Analytics Data</CardTitle>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Imported Lord Data</CardTitle>
+                  <CardDescription>
+                    {importedData.length > 0 ? (
+                      <div className="space-y-1">
+                        <div>
+                          Hiển thị {importedData.length} bản ghi đã import
+                        </div>
+                        {importInfo.fileName && (
+                          <div className="text-xs text-muted-foreground">
+                            File:{" "}
+                            <span className="font-medium">
+                              {importInfo.fileName}
+                            </span>
+                            {importInfo.sheetName && (
+                              <span>
+                                {" "}
+                                • Sheet:{" "}
+                                <span className="font-medium">
+                                  {importInfo.sheetName}
+                                </span>
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      "Import file Excel/CSV để xem dữ liệu Lord"
+                    )}
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  {importedData.length > 0 && (
+                    <Badge variant="outline">
+                      {importedData.length} records
+                    </Badge>
+                  )}
+                  {importInfo.availableSheets &&
+                    importInfo.availableSheets.length > 1 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {importInfo.availableSheets.length} sheets
+                      </Badge>
+                    )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {importedData.length > 0 ? (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Lord ID</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Merits (new)</TableHead>
+                        <TableHead>Highest Power (new)</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {importedData.slice(0, 10).map((lord, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="font-medium">
+                            {lord.lord_id}
+                          </TableCell>
+                          <TableCell>{lord.name}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {typeof lord["Merits (new)"] === "number"
+                                ? lord["Merits (new)"].toLocaleString()
+                                : lord["Merits (new)"]}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {typeof lord["highest_power (new)"] === "number"
+                                ? lord["highest_power (new)"].toLocaleString()
+                                : lord["highest_power (new)"]}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm">
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  {importedData.length > 10 && (
+                    <div className="flex items-center justify-center p-4 border-t">
+                      <p className="text-sm text-muted-foreground">
+                        Hiển thị 10/{importedData.length} bản ghi đầu tiên
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                    <BarChart3 className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">Chưa có dữ liệu</h3>
+                  <p className="text-muted-foreground">
+                    Sử dụng nút Import ở phía trên để import file Excel hoặc CSV
+                    và xem dữ liệu Lord tại đây
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="import-history" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Import History</CardTitle>
               <CardDescription>
-                Detailed analytics information will appear here
+                Lịch sử import file và thông tin chi tiết
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-center py-6 text-muted-foreground">
-                Analytics tab content is under development
-              </p>
+              {importHistory.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>File Name</TableHead>
+                      <TableHead>Sheets</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Imported By</TableHead>
+                      <TableHead>Date</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {importHistory.map((log: any) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="font-medium">
+                          <div>
+                            <p>{log.fileName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {(log.fileSize / 1024).toFixed(1)} KB •{" "}
+                              {log.fileType?.toUpperCase()}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            {log.sheetNames && log.sheetNames.length > 0 ? (
+                              <>
+                                <p className="font-medium text-xs">
+                                  {log.sheetNames[0]}
+                                </p>
+                                {log.sheetNames.length > 1 && (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs mt-1"
+                                  >
+                                    +{log.sheetNames.length - 1} more
+                                  </Badge>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-muted-foreground">N/A</span>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              log.status === "success"
+                                ? "default"
+                                : "destructive"
+                            }
+                          >
+                            {log.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {log.importedBy}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="text-sm">
+                              {new Date(
+                                log.createdAt || log.importedAt
+                              ).toLocaleDateString()}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(
+                                log.createdAt || log.importedAt
+                              ).toLocaleTimeString()}
+                            </p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                    <BarChart3 className="h-6 w-6 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-medium mb-2">
+                    Chưa có lịch sử import
+                  </h3>
+                  <p className="text-muted-foreground">
+                    Import file đầu tiên để xem lịch sử tại đây
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
