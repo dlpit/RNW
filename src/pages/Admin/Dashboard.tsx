@@ -14,7 +14,7 @@ import { logout } from "@/redux/auth/authSlice";
 import { AppDispatch, RootState } from "@/redux/store";
 import authorizedAxiosInstance from "@/utils/authorizeAxios";
 import { Download, LogOut, Search } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
@@ -49,14 +49,183 @@ const AdminDashboard = () => {
     sheets: string[];
   } | null>(null);
   const [showSheetsModal, setShowSheetsModal] = useState(false);
+
+  // New state for Lords and Members data
+  const [lordsData, setLordsData] = useState<any[]>([]);
+  const [lordsLoading, setLordsLoading] = useState(false);
+  const [lordsPagination, setLordsPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalRecords: 0,
+    limit: 50,
+    hasNext: false,
+    hasPrev: false,
+  });
+  const [lordsStatistics, setLordsStatistics] = useState<any>({});
+
+  // Ref to track initial data loading
+  const initialDataLoaded = useRef(false);
+
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.auth);
 
+  // Extract members data from lords data
+  const membersData = useMemo(() => {
+    if (!lordsData || !Array.isArray(lordsData)) return [];
+
+    // Filter lords that have alliance and extract member info
+    return lordsData
+      .filter(
+        (lord: any) =>
+          lord.member && lord.allianceTag && lord.allianceTag !== "Independent"
+      )
+      .map((lord: any) => ({
+        id: lord.member?.id || lord.id,
+        name: lord.member?.name || lord.name,
+        alliance: lord.allianceTag,
+        power: lord.currentPower || lord.power,
+        role: lord.member?.role || "Member",
+        kingdom: lord.faction || "Unknown",
+        killPoint: lord.member?.killPoint || lord.unitsKilled || 0,
+      }));
+  }, [lordsData]);
+
   // API functions
 
+  // Add state to preserve current filters
+  const [currentFilters, setCurrentFilters] = useState({
+    search: '',
+    sortBy: 'currentPower',
+    sortOrder: 'DESC'
+  });
+
+  const loadLordsData = useCallback(
+    async (filters = {}) => {
+      if (lordsLoading) {
+        console.log("⏭️ Lords data already loading, skipping...");
+        return; // Prevent duplicate calls
+      }
+
+      try {
+        setLordsLoading(true);
+        
+        // Merge current filters with new filters
+        const mergedFilters = {
+          ...currentFilters,
+          ...filters
+        };
+        
+        // Update current filters state
+        setCurrentFilters(mergedFilters);
+        
+        const defaultFilters = {
+          page: 1,
+          limit: 50,
+          sortBy: "currentPower",
+          sortOrder: "DESC",
+          ...mergedFilters,
+        };
+
+        // Convert all values to strings for URLSearchParams
+        const stringParams = Object.entries(defaultFilters).reduce(
+          (acc, [key, value]) => {
+            acc[key] = String(value);
+            return acc;
+          },
+          {} as Record<string, string>
+        );
+
+        const params = new URLSearchParams(stringParams);
+        const response = await authorizedAxiosInstance.get(
+          `/api/lords/?${params}`
+        );
+        const result = response.data;
+
+        console.log("🔍 Lords API response:", result);
+
+        // Fix: Handle the new enhanced backend response structure
+        if (result.status === "success" && result.data) {
+          const data = result.data;
+
+          // Backend now returns enhanced structure with pagination info
+          setLordsData(data.data || []);
+          
+          // Use the enhanced pagination info from backend
+          setLordsPagination({
+            currentPage: data.currentPage || 1,
+            totalPages: data.totalPages || 1,
+            totalRecords: data.total || 0,
+            limit: data.limit || 50,
+            hasNext: data.hasNext || false,
+            hasPrev: data.hasPrev || false
+          });
+
+          // Calculate statistics from actual data
+          const lords = data.data || [];
+          const statistics = {
+            totalLords: data.total || 0, // Use total from backend, not current page count
+            totalPower: lords.reduce(
+              (sum: number, lord: any) => sum + (lord.currentPower || 0),
+              0
+            ),
+            averagePower:
+              lords.length > 0
+                ? lords.reduce(
+                    (sum: number, lord: any) => sum + (lord.currentPower || 0),
+                    0
+                  ) / lords.length
+                : 0,
+            currentPageRecords: data.pagination?.recordsOnPage || lords.length
+          };
+          setLordsStatistics(statistics);
+
+          console.log("✅ Lords data loaded successfully:", {
+            lordsCount: lords.length,
+            totalRecords: data.total,
+            pagination: {
+              currentPage: data.currentPage,
+              totalPages: data.totalPages,
+              total: data.total,
+              hasNext: data.hasNext,
+              hasPrev: data.hasPrev,
+              recordsOnPage: data.pagination?.recordsOnPage
+            },
+            statistics,
+          });
+        } else {
+          throw new Error(result.message || "Failed to load lords data");
+        }
+      } catch (error: any) {
+        console.error("❌ Failed to load lords data:", error);
+
+        let errorMessage = "Không thể tải dữ liệu Lords";
+
+        if (error.response?.status === 401) {
+          errorMessage = "Không có quyền truy cập dữ liệu Lords";
+        } else if (error.response?.status === 404) {
+          errorMessage = "API Lords không tìm thấy";
+        } else if (error.message && error.message !== "Success") {
+          errorMessage = error.message;
+        }
+
+        toast({
+          variant: "destructive",
+          title: "Lỗi tải dữ liệu",
+          description: errorMessage,
+        });
+      } finally {
+        setLordsLoading(false);
+      }
+    },
+    [lordsLoading]
+  );
+
   const loadImportHistory = useCallback(async () => {
-    if (isLoadingHistory) return; // Prevent duplicate calls
+    if (isLoadingHistory) {
+      console.log("⏭️ Import history already loading, skipping...");
+      return; // Prevent duplicate calls
+    }
 
     try {
       setIsLoadingHistory(true);
@@ -64,23 +233,31 @@ const AdminDashboard = () => {
         params: { page: 1, limit: 10 },
       });
 
-      // Handle the new API response structure
+      console.log("🔍 Import History API response:", response.data);
+
+      // Handle the backend response structure based on your example
       if (response.data?.status === "success" && response.data?.data) {
         setImportHistory(response.data.data.imports || []);
-        setPagination(
-          response.data.data.pagination || {
-            currentPage: 1,
-            totalPages: 1,
-            totalRecords: 0,
-            limit: 10,
-          }
-        );
+
+        // Extract pagination from response if available
+        const data = response.data.data;
+        setPagination({
+          currentPage: data.currentPage || 1,
+          totalPages: data.totalPages || 1,
+          totalRecords: data.total || data.imports?.length || 0,
+          limit: 10,
+        });
+
+        console.log("✅ Import history loaded successfully:", {
+          importsCount: (response.data.data.imports || []).length,
+        });
       } else {
-        // Fallback for old response structure
+        // Fallback for different response structure
         setImportHistory(response.data?.imports || []);
+        console.log("⚠️ Using fallback import history structure");
       }
     } catch (error) {
-      console.error("Error loading import history:", error);
+      console.error("❌ Error loading import history:", error);
     } finally {
       setIsLoadingHistory(false);
     }
@@ -221,8 +398,9 @@ const AdminDashboard = () => {
             // Switch to analytics tab to show imported data
             setActiveTab("analytics");
 
-            // Refresh import history
+            // Refresh import history and lords data
             await loadImportHistory();
+            await loadLordsData(); // Refresh lords data after import
           } else {
             // Handle import failure - result.status !== "success"
             const errorMessage =
@@ -309,23 +487,41 @@ const AdminDashboard = () => {
     setSelectedSheets(null);
   };
 
-  // Load import history when component mounts
+  // Load import history and lords data when component mounts
   useEffect(() => {
-    let isMounted = true;
-
     const loadData = async () => {
-      if (isMounted && !isLoadingHistory) {
-        await loadImportHistory();
+      // Prevent duplicate loading
+      if (initialDataLoaded.current) {
+        console.log("⏭️ Data already loaded, skipping...");
+        return;
+      }
+
+      console.log("🚀 Loading initial data...");
+      initialDataLoaded.current = true;
+
+      try {
+        // Load import history first
+        if (!isLoadingHistory) {
+          console.log("📋 Loading import history...");
+          await loadImportHistory();
+        }
+
+        // Then load lords data
+        if (!lordsLoading) {
+          console.log("⚔️ Loading lords data...");
+          await loadLordsData();
+        }
+
+        console.log("✅ Initial data loading completed");
+      } catch (error) {
+        console.error("❌ Error loading initial data:", error);
+        // Reset flag on error so it can be retried
+        initialDataLoaded.current = false;
       }
     };
 
     loadData();
-
-    // Cleanup function to prevent state updates if component unmounts
-    return () => {
-      isMounted = false;
-    };
-  }, []); // Load once when component mounts
+  }, []); // Empty dependency array - load once when component mounts
 
   return (
     <div className="flex flex-col gap-6 p-6 md:p-8">
@@ -395,11 +591,24 @@ const AdminDashboard = () => {
         </TabsContent>
 
         <TabsContent value="users" className="space-y-4">
-          <UserTab />
+          <UserTab
+            membersData={membersData}
+            membersLoading={lordsLoading}
+            onRefreshMembers={() => loadLordsData()}
+          />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">
-          <AnalyticsTab importedData={importedData} importInfo={importInfo} />
+          <AnalyticsTab
+            importedData={importedData}
+            importInfo={importInfo}
+            lordsData={lordsData}
+            lordsLoading={lordsLoading}
+            lordsPagination={lordsPagination}
+            lordsStatistics={lordsStatistics}
+            onRefreshLords={() => loadLordsData()}
+            onFilterLords={(filters) => loadLordsData(filters)}
+          />
         </TabsContent>
 
         <TabsContent value="import-history" className="space-y-4">
