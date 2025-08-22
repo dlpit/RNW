@@ -1,50 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Area,
-  AreaChart,
-  Line,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  Legend,
-} from "recharts";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import {
-  Activity,
-  BarChart3,
-  CreditCard,
-  DollarSign,
-  Download,
-  ShoppingBag,
-  Users,
-  Search,
-  PlusCircle,
-  UserRoundPlus,
-  LogOut,
-} from "lucide-react";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -52,118 +7,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Tooltip as UITooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "@/hooks/use-toast";
+import { logout } from "@/redux/auth/authSlice";
+import { AppDispatch, RootState } from "@/redux/store";
+import authorizedAxiosInstance from "@/utils/authorizeAxios";
+import { Download, LogOut, Search } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { logout } from "@/redux/auth/authSlice";
-import { RootState, AppDispatch } from "@/redux/store";
-import { toast } from "@/hooks/use-toast";
+
+// Import tab components
 import {
-  importFile,
-  validateAndExtractColumns,
-  downloadSampleExcel,
-  getExcelSheetNames,
-} from "@/utils/fileImport";
-import authorizedAxiosInstance from "@/utils/authorizeAxios";
-
-// Sample data for the dashboard
-const revenueData = [
-  { date: "Jan", revenue: 1500, projectedRevenue: 1300 },
-  { date: "Feb", revenue: 2300, projectedRevenue: 2000 },
-  { date: "Mar", revenue: 1800, projectedRevenue: 2200 },
-  { date: "Apr", revenue: 2800, projectedRevenue: 2500 },
-  { date: "May", revenue: 3200, projectedRevenue: 2800 },
-  { date: "Jun", revenue: 3800, projectedRevenue: 3300 },
-  { date: "Jul", revenue: 4200, projectedRevenue: 3800 },
-  { date: "Aug", revenue: 4800, projectedRevenue: 4200 },
-  { date: "Sep", revenue: 5200, projectedRevenue: 4800 },
-  { date: "Oct", revenue: 5800, projectedRevenue: 5200 },
-  { date: "Nov", revenue: 6200, projectedRevenue: 5800 },
-  { date: "Dec", revenue: 7000, projectedRevenue: 6200 },
-];
-
-const usersData = [
-  { date: "Jan", users: 150 },
-  { date: "Feb", users: 230 },
-  { date: "Mar", users: 280 },
-  { date: "Apr", users: 350 },
-  { date: "May", users: 420 },
-  { date: "Jun", users: 480 },
-  { date: "Jul", users: 550 },
-  { date: "Aug", users: 610 },
-  { date: "Sep", users: 680 },
-  { date: "Oct", users: 750 },
-  { date: "Nov", users: 820 },
-  { date: "Dec", users: 900 },
-];
-
-const recentUsers = [
-  {
-    id: 1,
-    name: "Alex Johnson",
-    email: "alex.johnson@example.com",
-    status: "active",
-    role: "User",
-    joinedDate: "2023-11-15",
-    avatar: "https://avatars.githubusercontent.com/u/12345678",
-  },
-  {
-    id: 2,
-    name: "Sarah Lee",
-    email: "sarah.lee@example.com",
-    status: "pending",
-    role: "Admin",
-    joinedDate: "2023-12-01",
-    avatar: "",
-  },
-  {
-    id: 3,
-    name: "Mohamed Ali",
-    email: "mohamed.ali@example.com",
-    status: "active",
-    role: "User",
-    joinedDate: "2023-12-10",
-    avatar: "https://avatars.githubusercontent.com/u/87654321",
-  },
-  {
-    id: 4,
-    name: "Emma Rodriguez",
-    email: "emma.rod@example.com",
-    status: "inactive",
-    role: "Editor",
-    joinedDate: "2023-10-22",
-    avatar: "",
-  },
-  {
-    id: 5,
-    name: "Hiroshi Tanaka",
-    email: "hiroshi.t@example.com",
-    status: "active",
-    role: "User",
-    joinedDate: "2024-01-05",
-    avatar: "https://avatars.githubusercontent.com/u/23456789",
-  },
-];
-
-const LoadingRecentActivity = () => (
-  <div className="space-y-4">
-    {[1, 2, 3, 4].map((i) => (
-      <div key={i} className="flex items-center gap-4">
-        <Skeleton className="h-10 w-10 rounded-full" />
-        <div className="space-y-2 flex-1">
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-3 w-1/2" />
-        </div>
-        <Skeleton className="h-6 w-16 rounded-md" />
-      </div>
-    ))}
-  </div>
-);
+  AnalyticsTab,
+  ImportHistoryTab,
+  OverviewTab,
+  SettingsTab,
+  UserTab,
+} from "./DashboardTabs";
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -192,39 +54,6 @@ const AdminDashboard = () => {
   const { user } = useSelector((state: RootState) => state.auth);
 
   // API functions
-  const saveImportMetadata = async (
-    file: File,
-    sheetNames: string[],
-    status: "success" | "failed",
-    errorMessage?: string
-  ) => {
-    try {
-      const metadata = {
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.name.split(".").pop()?.toLowerCase() || "",
-        sheetNames: sheetNames,
-        importedBy: user?.email || user?.name || "Unknown",
-        status: status,
-        errorMessage: errorMessage || null,
-      };
-
-      const response = await authorizedAxiosInstance.post(
-        "/api/file-imports",
-        metadata
-      );
-
-      // Reload import history only if not already loading
-      if (!isLoadingHistory) {
-        await loadImportHistory();
-      }
-
-      return response.data;
-    } catch (error) {
-      console.error("Error saving import metadata:", error);
-      // Không throw error để không làm gián đoạn quá trình import chính
-    }
-  };
 
   const loadImportHistory = useCallback(async () => {
     if (isLoadingHistory) return; // Prevent duplicate calls
@@ -274,110 +103,185 @@ const AdminDashboard = () => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         setIsLoading(true);
-        let availableSheets: string[] = [];
-        let result: any = null;
 
         try {
-          // Get sheet names for Excel files
-          if (
-            file.name.toLowerCase().endsWith(".xlsx") ||
-            file.name.toLowerCase().endsWith(".xls")
-          ) {
-            availableSheets = await getExcelSheetNames(file);
+          // Simple file validation
+          const maxSize = 50 * 1024 * 1024; // 50MB
+          if (file.size > maxSize) {
+            throw new Error("File quá lớn. Tối đa 50MB");
           }
 
-          result = await importFile(file, {
-            maxFileSize: 10,
-            skipEmptyRows: true,
+          const allowedExtensions = [".csv", ".xlsx", ".xls"];
+          const extension = file.name
+            .toLowerCase()
+            .substring(file.name.lastIndexOf("."));
+          if (!allowedExtensions.includes(extension)) {
+            throw new Error(
+              `File không được hỗ trợ. Chỉ chấp nhận: ${allowedExtensions.join(
+                ", "
+              )}`
+            );
+          }
+
+          toast({
+            title: "Đang upload file",
+            description: "Đang gửi file lên server để xử lý...",
           });
 
-          // Set import info
-          const currentImportInfo = {
-            fileName: file.name,
-            availableSheets: availableSheets,
-            sheetName: availableSheets.includes("RNW Combat Stats Dashboard")
-              ? "RNW Combat Stats Dashboard"
-              : availableSheets[0],
-          };
-          setImportInfo(currentImportInfo);
+          // Upload file to backend
+          const formData = new FormData();
+          formData.append("excelFile", file); // Correct field name matching backend
 
-          // Validate and extract specific columns
-          const requiredColumns = [
-            "lord_id",
-            "name",
-            "Merits (new)",
-            "highest_power (new)",
-          ];
-          const validation = validateAndExtractColumns(result, requiredColumns);
+          // Call the backend import endpoint with extended timeout and progress
+          const response = await authorizedAxiosInstance.post(
+            "/api/lords/import-file",
+            formData,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+              timeout: 600000, // 10 minutes timeout
+              onUploadProgress: (progressEvent) => {
+                if (progressEvent.total) {
+                  const percentCompleted = Math.round(
+                    (progressEvent.loaded * 100) / progressEvent.total
+                  );
+                  console.log(`Upload progress: ${percentCompleted}%`);
 
-          if (validation.success) {
-            setImportedData(validation.data);
+                  // Update toast with upload progress
+                  if (percentCompleted < 100) {
+                    toast({
+                      title: "Đang upload file",
+                      description: `Tiến độ upload: ${percentCompleted}%`,
+                    });
+                  } else {
+                    toast({
+                      title: "Đang xử lý file",
+                      description: "File đã upload xong, đang xử lý dữ liệu...",
+                    });
+                  }
+                }
+              },
+            }
+          );
 
-            // Save metadata to backend - SUCCESS
-            try {
-              await saveImportMetadata(file, availableSheets, "success");
-            } catch (metadataError) {
-              console.error(
-                "Failed to save metadata, but import succeeded:",
-                metadataError
+          const result = response.data;
+
+          // Debug logging to validate response format
+          console.log("Import response:", result);
+
+          // Check response format according to guide
+          if (result.status === "success" && result.data) {
+            const summary = result.data.summary;
+            const details = result.data.details || [];
+
+            console.log("Import summary:", summary);
+            console.log("Import details count:", details.length);
+
+            // Validate required fields according to guide
+            if (!summary || typeof summary.totalRows !== "number") {
+              throw new Error(
+                "Response thiếu thông tin summary hoặc format không đúng"
               );
             }
 
-            const sheetInfo = currentImportInfo.sheetName
-              ? ` từ sheet "${currentImportInfo.sheetName}"`
-              : "";
+            // Set import info for display
+            setImportInfo({
+              fileName: summary.fileName,
+              sheetName: "Server processed", // Backend handles sheet selection
+            });
+
+            // Transform backend response to match current UI expectations
+            // Filter successful records and extract their data if available
+            const transformedData = details
+              .filter((detail) => detail.status === "success")
+              .map((detail) => {
+                // Some successful records might not have data object
+                if (detail.data) {
+                  return detail.data;
+                }
+                // Fallback: create basic record from detail info
+                return {
+                  lord_id: detail.lordId || "",
+                  name: detail.memberName || "",
+                  action: detail.action || "processed",
+                  row: detail.row || 0,
+                };
+              })
+              .filter(Boolean);
+
+            console.log("Transformed data count:", transformedData.length);
+            setImportedData(transformedData);
 
             toast({
               title: "Import thành công",
-              description: `Đã import ${validation.data.length} bản ghi${sheetInfo}`,
+              description: `Đã xử lý ${summary.totalRows} dòng. Thành công: ${summary.successful}, Thất bại: ${summary.failed}`,
             });
 
             // Switch to analytics tab to show imported data
             setActiveTab("analytics");
-          } else {
-            // Save metadata to backend - FAILED
-            try {
-              await saveImportMetadata(
-                file,
-                availableSheets,
-                "failed",
-                validation.errors.join("; ")
-              );
-            } catch (metadataError) {
-              console.error(
-                "Failed to save metadata for failed import:",
-                metadataError
-              );
-            }
 
+            // Refresh import history
+            await loadImportHistory();
+          } else {
+            // Handle import failure - result.status !== "success"
+            const errorMessage =
+              result.message ||
+              "Import thất bại - định dạng response không đúng";
             toast({
               variant: "destructive",
-              title: "Lỗi validation",
-              description: validation.errors.join("; "),
+              title: "Import thất bại",
+              description: errorMessage,
             });
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error("Import error:", error);
 
-          // Save metadata to backend - FAILED
-          try {
-            await saveImportMetadata(
-              file,
-              availableSheets,
-              "failed",
-              error instanceof Error ? error.message : "Unknown error"
-            );
-          } catch (metadataError) {
-            console.error(
-              "Failed to save metadata for error case:",
-              metadataError
-            );
+          let errorMessage = "Lỗi không xác định";
+
+          // Handle timeout error specifically
+          if (
+            error.code === "ECONNABORTED" &&
+            error.message.includes("timeout")
+          ) {
+            errorMessage =
+              "Xử lý file quá lâu (hơn 10 phút). Vui lòng thử lại với file nhỏ hơn hoặc liên hệ admin để tăng thời gian xử lý.";
+          } else if (error.response?.data) {
+            const errorData = error.response.data;
+
+            // Check if backend returns error in guide format
+            if (errorData.status === "error" && errorData.message) {
+              errorMessage = errorData.message;
+            } else if (errorData.message) {
+              errorMessage = errorData.message;
+            } else if (typeof errorData === "string") {
+              errorMessage = errorData;
+            }
+          } else if (error.message) {
+            errorMessage = error.message;
+          }
+
+          // Handle network errors
+          if (error.code === "NETWORK_ERROR" || !error.response) {
+            errorMessage =
+              "Không thể kết nối tới server. Vui lòng kiểm tra backend đang chạy.";
+          }
+
+          // Handle auth errors
+          if (error.response?.status === 401) {
+            errorMessage =
+              "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+          }
+
+          // Handle file size or format errors
+          if (error.response?.status === 413) {
+            errorMessage = "File quá lớn. Vui lòng chọn file nhỏ hơn 50MB.";
           }
 
           toast({
             variant: "destructive",
             title: "Lỗi import",
-            description: "Có lỗi xảy ra khi import file",
+            description: errorMessage,
           });
         } finally {
           setIsLoading(false);
@@ -388,8 +292,11 @@ const AdminDashboard = () => {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = ["lord_id", "name", "Merits (new)", "highest_power (new)"];
-    downloadSampleExcel(headers, "lord_data_template.xlsx");
+    // Template download functionality removed as per user request
+    toast({
+      title: "Thông báo",
+      description: "Chức năng download template đã được gỡ bỏ",
+    });
   };
 
   const handleShowSheets = (fileName: string, sheets: string[]) => {
@@ -484,630 +391,28 @@ const AdminDashboard = () => {
         </div>
 
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total Revenue
-                </CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">$45,231.89</div>
-                <p className="text-xs text-muted-foreground">
-                  +20.1% from last month
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Subscriptions
-                </CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">+2,350</div>
-                <p className="text-xs text-muted-foreground">
-                  +10.1% from last month
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Active Users
-                </CardTitle>
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">7,842</div>
-                <p className="text-xs text-muted-foreground">
-                  +19% from last month
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Conversion Rate
-                </CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">4.3%</div>
-                <p className="text-xs text-muted-foreground">
-                  +1.1% from last month
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="col-span-4">
-              <CardHeader>
-                <CardTitle>Revenue Overview</CardTitle>
-                <CardDescription>
-                  Monthly revenue breakdown and projections
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={revenueData}>
-                    <defs>
-                      <linearGradient
-                        id="revenueColor"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="hsl(var(--primary))"
-                          stopOpacity={0.8}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="hsl(var(--primary))"
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <Tooltip />
-                    <Legend />
-                    <Area
-                      type="monotone"
-                      dataKey="revenue"
-                      name="Revenue"
-                      stroke="hsl(var(--primary))"
-                      fillOpacity={0.2}
-                      fill="url(#revenueColor)"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="projectedRevenue"
-                      name="Projected Revenue"
-                      stroke="hsl(var(--muted-foreground))"
-                      strokeDasharray="5 5"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-            <Card className="col-span-3">
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Latest user registrations</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <LoadingRecentActivity />
-                ) : (
-                  <div className="space-y-4">
-                    {recentUsers.slice(0, 4).map((user) => (
-                      <div key={user.id} className="flex items-center gap-4">
-                        <Avatar>
-                          <AvatarImage src={user.avatar} />
-                          <AvatarFallback>
-                            {user.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 space-y-1">
-                          <p className="text-sm font-medium leading-none">
-                            {user.name}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {user.email}
-                          </p>
-                        </div>
-                        <Badge
-                          variant={
-                            user.status === "active"
-                              ? "default"
-                              : user.status === "pending"
-                              ? "outline"
-                              : "secondary"
-                          }
-                        >
-                          {user.status}
-                        </Badge>
-                      </div>
-                    ))}
-                    <Button variant="outline" className="w-full">
-                      <UserRoundPlus className="mr-2 h-4 w-4" />
-                      View All Users
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="col-span-3">
-              <CardHeader>
-                <CardTitle>Tasks Progress</CardTitle>
-                <CardDescription>Your tasks completion rate</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium">
-                        Design revisions
-                      </div>
-                      <div className="text-sm text-muted-foreground">75%</div>
-                    </div>
-                    <Progress value={75} />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium">Content writing</div>
-                      <div className="text-sm text-muted-foreground">32%</div>
-                    </div>
-                    <Progress value={32} />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium">Development</div>
-                      <div className="text-sm text-muted-foreground">86%</div>
-                    </div>
-                    <Progress value={86} />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium">Testing</div>
-                      <div className="text-sm text-muted-foreground">48%</div>
-                    </div>
-                    <Progress value={48} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="col-span-4">
-              <CardHeader>
-                <CardTitle>User Growth</CardTitle>
-                <CardDescription>
-                  Monthly user acquisition trends
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={usersData}>
-                    <defs>
-                      <linearGradient
-                        id="usersColor"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor="hsl(var(--primary))"
-                          stopOpacity={0.8}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor="hsl(var(--primary))"
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <Tooltip />
-                    <Area
-                      type="monotone"
-                      dataKey="users"
-                      name="Users"
-                      stroke="hsl(var(--primary))"
-                      fillOpacity={0.2}
-                      fill="url(#usersColor)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
+          <OverviewTab isLoading={isLoading} />
         </TabsContent>
 
         <TabsContent value="users" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>User Management</CardTitle>
-                  <CardDescription>
-                    Manage your platform users and their roles
-                  </CardDescription>
-                </div>
-                <Button>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add User
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center">
-                          <Avatar className="mr-2 h-6 w-6">
-                            <AvatarImage src={user.avatar} />
-                            <AvatarFallback>
-                              {user.name
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
-                            </AvatarFallback>
-                          </Avatar>
-                          {user.name}
-                        </div>
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>{user.role}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            user.status === "active"
-                              ? "default"
-                              : user.status === "pending"
-                              ? "outline"
-                              : "secondary"
-                          }
-                        >
-                          {user.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(user.joinedDate).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="sm">
-                          Edit
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <UserTab />
         </TabsContent>
 
         <TabsContent value="analytics" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Imported Lord Data</CardTitle>
-                  <CardDescription>
-                    {importedData.length > 0 ? (
-                      <div className="space-y-1">
-                        <div>
-                          Hiển thị {importedData.length} bản ghi đã import
-                        </div>
-                        {importInfo.fileName && (
-                          <div className="text-xs text-muted-foreground">
-                            File:{" "}
-                            <span className="font-medium">
-                              {importInfo.fileName}
-                            </span>
-                            {importInfo.sheetName && (
-                              <span>
-                                {" "}
-                                • Sheet:{" "}
-                                <span className="font-medium">
-                                  {importInfo.sheetName}
-                                </span>
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      "Import file Excel/CSV để xem dữ liệu Lord"
-                    )}
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  {importedData.length > 0 && (
-                    <Badge variant="outline">
-                      {importedData.length} records
-                    </Badge>
-                  )}
-                  {importInfo.availableSheets &&
-                    importInfo.availableSheets.length > 1 && (
-                      <Badge variant="secondary" className="text-xs">
-                        {importInfo.availableSheets.length} sheets
-                      </Badge>
-                    )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {importedData.length > 0 ? (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Lord ID</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Merits (new)</TableHead>
-                        <TableHead>Highest Power (new)</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {importedData.slice(0, 10).map((lord, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-medium">
-                            {lord.lord_id}
-                          </TableCell>
-                          <TableCell>{lord.name}</TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">
-                              {typeof lord["Merits (new)"] === "number"
-                                ? lord["Merits (new)"].toLocaleString()
-                                : lord["Merits (new)"]}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {typeof lord["highest_power (new)"] === "number"
-                                ? lord["highest_power (new)"].toLocaleString()
-                                : lord["highest_power (new)"]}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm">
-                              View
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                  {importedData.length > 10 && (
-                    <div className="flex items-center justify-center p-4 border-t">
-                      <p className="text-sm text-muted-foreground">
-                        Hiển thị 10/{importedData.length} bản ghi đầu tiên
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                    <BarChart3 className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-lg font-medium mb-2">Chưa có dữ liệu</h3>
-                  <p className="text-muted-foreground">
-                    Sử dụng nút Import ở phía trên để import file Excel hoặc CSV
-                    và xem dữ liệu Lord tại đây
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <AnalyticsTab importedData={importedData} importInfo={importInfo} />
         </TabsContent>
 
         <TabsContent value="import-history" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Import History</CardTitle>
-              <CardDescription>
-                Lịch sử import file và thông tin chi tiết
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isLoadingHistory ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  <span className="ml-2">Đang tải lịch sử import...</span>
-                </div>
-              ) : importHistory.length > 0 ? (
-                <>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>File Name</TableHead>
-                        <TableHead>Sheets</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Imported By</TableHead>
-                        <TableHead>Date</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {importHistory.map((log: any) => (
-                        <TableRow key={log.id}>
-                          <TableCell className="font-medium">
-                            <div>
-                              <p>{log.fileName}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {log.fileSize
-                                  ? log.fileSize > 1024 * 1024
-                                    ? `${(log.fileSize / (1024 * 1024)).toFixed(
-                                        1
-                                      )} MB`
-                                    : `${(log.fileSize / 1024).toFixed(1)} KB`
-                                  : "N/A"}{" "}
-                                • {log.fileType?.toUpperCase() || "N/A"}
-                              </p>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              {log.sheetNames && log.sheetNames.length > 0 ? (
-                                <>
-                                  <p className="font-medium text-xs">
-                                    {log.sheetNames[0]}
-                                  </p>
-                                  {log.sheetNames.length > 1 && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-xs mt-1 h-6 px-2"
-                                      onClick={() =>
-                                        handleShowSheets(
-                                          log.fileName,
-                                          log.sheetNames
-                                        )
-                                      }
-                                    >
-                                      +{log.sheetNames.length - 1} more
-                                    </Button>
-                                  )}
-                                </>
-                              ) : (
-                                <span className="text-muted-foreground">
-                                  N/A
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                log.status === "success"
-                                  ? "default"
-                                  : "destructive"
-                              }
-                              className="text-xs"
-                            >
-                              {log.status === "success"
-                                ? "Thành công"
-                                : "Thất bại"}
-                            </Badge>
-                            {log.errorMessage && (
-                              <div className="mt-1">
-                                <TooltipProvider>
-                                  <UITooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs cursor-help"
-                                      >
-                                        Error Details
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p className="max-w-sm">
-                                        {log.errorMessage}
-                                      </p>
-                                    </TooltipContent>
-                                  </UITooltip>
-                                </TooltipProvider>
-                              </div>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-sm">
-                            {log.importedBy}
-                          </TableCell>
-                          <TableCell>
-                            <div>
-                              <p className="text-sm">
-                                {new Date(
-                                  log.createdAt || log.importedAt
-                                ).toLocaleDateString()}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(
-                                  log.createdAt || log.importedAt
-                                ).toLocaleTimeString()}
-                              </p>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-
-                  {/* Pagination Info */}
-                  {pagination.totalRecords > 0 && (
-                    <div className="flex items-center justify-between pt-4 border-t">
-                      <p className="text-sm text-muted-foreground">
-                        Hiển thị {importHistory.length} trong tổng số{" "}
-                        {pagination.totalRecords} file imports
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Trang {pagination.currentPage} / {pagination.totalPages}
-                      </p>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="mx-auto mb-4 w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                    <BarChart3 className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <h3 className="text-lg font-medium mb-2">
-                    Chưa có lịch sử import
-                  </h3>
-                  <p className="text-muted-foreground">
-                    Import file đầu tiên để xem lịch sử tại đây
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ImportHistoryTab
+            importHistory={importHistory}
+            isLoadingHistory={isLoadingHistory}
+            pagination={pagination}
+            onShowSheets={handleShowSheets}
+          />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Settings</CardTitle>
-              <CardDescription>
-                Configure your admin dashboard settings
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-center py-6 text-muted-foreground">
-                Settings tab content is under development
-              </p>
-            </CardContent>
-          </Card>
+          <SettingsTab />
         </TabsContent>
       </Tabs>
 
